@@ -1,95 +1,116 @@
+"use client"
+
 import React from 'react'
-import SectionDivider from '../section-divider'
-import Image from 'next/image'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
+import ScalesOfJustice3D from './scales-of-justice'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { AlertTriangle, ChevronDown } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 const HeroPage = () => {
   return (
-    <>
-      <section
-        className="flex flex-col gap-8 md:gap-4 sm:items-center sm:justify-center font-semibold w-full min-h-screen mx-8 scroll-mt-12"
-        id="about"
-      >
-        <div className="flex flex-col md:flex-row justify-center items-center md:items-start gap-6 w-full mt-24">
-          <div className="flex flex-col gap-4 max-w-[480px]">
-            <h2 className="text-3xl md:text-4xl mb-12 md:mb-4">
-              Do you have{' '}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet-500 tracking-wide">
-                legal problems
-              </span>
-              {' '}that need to be solved?
-            </h2>
-            <h3 className="text-2xl md:text-3xl brightness-50 font-normal">
-              Here is one of the best AI assistants for legal matters!
-              Our services will help you solve problems with complaints, appeals
-              before court proceedings and contracts!
-            </h3>
+    <section
+      className="relative flex flex-col-reverse md:flex-row items-center justify-center w-full min-h-[calc(100vh-4rem)] pt-16 px-6 md:px-16 overflow-hidden"
+      id="about"
+    >
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-secondary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+      </div>
+
+      {/* Left: Copy */}
+      <div className="flex flex-col gap-6 md:w-1/2 max-w-2xl z-10 pb-8 md:pb-0">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-4 py-2 rounded-full w-fit"
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="text-sm font-medium">This tool provides information, not legal advice</span>
+        </motion.div>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif text-primary leading-[1.1] tracking-tight"
+        >
+          Your AI Legal{' '}
+          <span className="text-secondary inline-block">Companion</span>
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-base md:text-lg text-muted-foreground font-sans max-w-lg leading-relaxed"
+        >
+          Upload contracts, spot risky clauses, get plain-language summaries, compare versions, and generate checklists for your lawyer — in English, Hindi, or Hinglish.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex flex-col sm:flex-row gap-3 mt-2"
+        >
+          <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans text-base h-12 px-8 shadow-lg shadow-primary/20" asChild>
+            <Link href="/dashboard/upload">
+              Analyze a Document
+            </Link>
+          </Button>
+          <Button size="lg" variant="outline" className="font-sans text-base h-12 px-8" asChild>
+            <Link href="#features">
+              How it works
+            </Link>
+          </Button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="flex items-center gap-6 mt-4 text-sm text-muted-foreground"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-risk-safe" />
+            Free to try
           </div>
-          <Accordion
-            type="single"
-            collapsible
-            className="w-10/12 sm:w-8/12 md:w-3/12"
-          >
-            <AccordionItem value="item-1">
-              <AccordionTrigger>What is AI-Lawyer?</AccordionTrigger>
-              <AccordionContent>
-                AI-Lawyer is a service that generates documents based on
-                user inputs and provides legal advice. It is completely
-                free and fast.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-2">
-              <AccordionTrigger>How does AI-Lawyer work?</AccordionTrigger>
-              <AccordionContent>
-                AI-Lawyer uses artificial intelligence to analyze your input
-                data and generates legal documents according to your needs. Additionally,
-                it provides legal advice based on current laws and
-                regulations.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-3">
-              <AccordionTrigger>Is AI-Lawyer free?</AccordionTrigger>
-              <AccordionContent>
-                Yes, AI-Lawyer is completely free. Our goal is to provide
-                fast and accessible legal services for everyone.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-4">
-              <AccordionTrigger>
-                What types of documents can I generate?
-              </AccordionTrigger>
-              <AccordionContent>
-                You can generate two types of legal documents: Lawsuits and
-                Pre-litigation appeals.{' '}
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-5">
-              <AccordionTrigger>
-                What is the accuracy of AI-Lawyer's legal advice?
-              </AccordionTrigger>
-              <AccordionContent>
-                AI-Lawyer strives to provide the most accurate legal advice.
-                However, we recommend consulting with a real lawyer for
-                specific and complex legal matters.
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-        <Image
-          src="/chatbot.svg"
-          width={500}
-          height={500}
-          className="opacity-95 h-[300px] w-[300px] lg:w-[400px] lg:h-[400px]"
-          alt="Judge illustration"
-        />
-      </section>
-      <SectionDivider />
-    </>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-secondary" />
+            Multilingual
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary" />
+            Encrypted
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Right: 3D */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+        className="w-full md:w-1/2 h-[300px] sm:h-[400px] md:h-[550px] flex items-center justify-center relative"
+      >
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-secondary/15 rounded-full blur-[80px]" />
+        <ScalesOfJustice3D />
+      </motion.div>
+
+      {/* Scroll hint */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2, duration: 0.6 }}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-1 text-muted-foreground"
+      >
+        <span className="text-xs">Scroll to learn more</span>
+        <ChevronDown className="w-4 h-4 animate-bounce" />
+      </motion.div>
+    </section>
   )
 }
 

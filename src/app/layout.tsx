@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter as FontSans } from 'next/font/google'
+import { Inter as FontSans, Playfair_Display as FontSerif } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { ThemeProvider } from '@/providers/theme-provider'
 import './globals.css'
@@ -10,10 +10,16 @@ const fontSans = FontSans({
   subsets: ['latin'],
   variable: '--font-sans',
 })
+
+const fontSerif = FontSerif({
+  subsets: ['latin'],
+  variable: '--font-serif',
+})
+
 export const metadata: Metadata = {
-  title: 'AI-Lawyer',
+  title: 'NyaySaathi — AI Legal Companion',
   description:
-    'Here is one of the best AI assistants for legal matters! Our services will help you solve problems with complaints, appeals before court proceedings and contracts',
+    'An AI-powered legal companion that simplifies documents, compares agreements, flags risky clauses, and answers questions in plain language.',
 }
 
 export default function RootLayout({
@@ -26,7 +32,8 @@ export default function RootLayout({
       <body
         className={cn(
           'min-h-screen bg-background font-sans antialiased',
-          fontSans.variable
+          fontSans.variable,
+          fontSerif.variable
         )}
       >
         <ThemeProvider

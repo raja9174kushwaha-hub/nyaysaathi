@@ -66,3 +66,18 @@ export const convertFromHtml = (html: string | undefined) => {
 }
 
 export const fileTypes = ['application/pdf', 'text/plain']
+
+export function detectDocType(filename: string): string {
+  const lower = filename.toLowerCase()
+  if (lower.includes('lease') || lower.includes('rent')) return 'Lease'
+  if (lower.includes('nda') || lower.includes('disclosure')) return 'NDA'
+  if (lower.includes('contract') || lower.includes('agreement')) return 'Contract'
+  if (lower.includes('policy') || lower.includes('terms') || lower.includes('tos')) return 'ToS'
+  return 'Document'
+}
+
+export function getRiskLabel(score: number): string {
+  if (score >= 70) return 'High Risk'
+  if (score >= 40) return 'Caution'
+  return 'Safe'
+}

@@ -18,6 +18,10 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)"],
+        serif: ["var(--font-serif)"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -51,6 +55,11 @@ const config = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        risk: {
+          safe: "hsl(var(--risk-safe))",
+          caution: "hsl(var(--risk-caution))",
+          danger: "hsl(var(--risk-danger))",
         },
       },
       borderRadius: {

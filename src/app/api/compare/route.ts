@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGemini } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { compareSchema, validateRequestBody, sanitizeText } from '@/lib/validators'
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
     const ip = getClientIp(req)
     const rateLimit = checkRateLimit(ip)
 
@@ -13,14 +15,12 @@ export async function POST(req: NextRequest) {
         { status: 429, headers: { 'X-RateLimit-Reset': rateLimit.resetTime.toISOString() } }
       )
     }
-    const { textA, textB } = await req.json()
 
-    if (!textA || !textB) {
-      return NextResponse.json(
-        { error: 'Both textA and textB are required.' },
-        { status: 400 }
-      )
-    }
+    // Input validation
+    const body = await req.json()
+    const { textA, textB } = validateRequestBody(compareSchema, body)
+    const sanitizedA = sanitizeText(textA)
+    const sanitizedB = sanitizeText(textB)
 
     const prompt = `You are NyaySaathi, an expert Indian legal document comparison analyst. Compare the two versions of a legal document below and identify meaningful differences.
 
@@ -53,10 +53,10 @@ RESPOND ONLY with valid JSON, no markdown, no backticks:
 }
 
 DOCUMENT VERSION 1 (Original):
-${textA}
+${sanitizedA}
 
 DOCUMENT VERSION 2 (Revised):
-${textB}`
+${sanitizedB}`
 
     const result = await callGemini(prompt)
 
@@ -72,11 +72,11 @@ ${textB}`
     }
 
     return NextResponse.json(parsed)
-  } catch (error: any) {
-    console.error('Compare API error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to compare documents.' },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to compare documents.'
+    console.error('Compare API error:', message)
+
+    const status = message.includes('required') || message.includes('too short') || message.includes('exceeds') ? 400 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

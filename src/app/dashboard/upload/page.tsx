@@ -7,6 +7,7 @@ import { UploadCloud, File as FileIcon, AlertCircle, ArrowLeft, CheckCircle2, XC
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { detectDocType, getRiskLabel } from '@/lib/utils'
 
 type UploadedFile = globalThis.File
 
@@ -145,9 +146,10 @@ export default function UploadPage() {
         router.push(`/dashboard/document/${docId}`)
       }, 600)
 
-    } catch (err: any) {
-      console.error('Analysis error:', err)
-      setError(err.message || 'Something went wrong. Please try again.')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      console.error('Analysis error:', message)
+      setError(message)
       setIsAnalyzing(false)
     }
   }
@@ -218,7 +220,7 @@ export default function UploadPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.txt" />
+              <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.txt" aria-label="Upload document file" />
             </label>
           </CardContent>
         </Card>
@@ -230,6 +232,7 @@ export default function UploadPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
+              role="alert"
               className="mt-4 flex items-center gap-2 text-sm text-risk-danger bg-risk-danger/10 px-4 py-3 rounded-xl border border-risk-danger/20"
             >
               <XCircle className="w-4 h-4 shrink-0" />
@@ -250,7 +253,7 @@ export default function UploadPage() {
               {isAnalyzing ? (
                 <div className="w-full max-w-md space-y-4">
                   {/* Progress bar */}
-                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuenow={((analysisStage + 1) / stages.length) * 100} aria-valuemin={0} aria-valuemax={100}>
                     <motion.div
                       className="h-full bg-secondary rounded-full"
                       initial={{ width: '0%' }}
@@ -259,7 +262,7 @@ export default function UploadPage() {
                     />
                   </div>
                   {/* Stage steps */}
-                  <div className="space-y-2" aria-live="polite" aria-atomic="true">
+                  <div className="space-y-2" aria-live="polite" aria-atomic="true" role="status">
                     {stages.map((stage, i) => (
                       <div key={i} className={`flex items-center gap-2 text-sm transition-colors ${
                         i < analysisStage ? 'text-risk-safe' : i === analysisStage ? 'text-primary font-medium' : 'text-muted-foreground/50'
@@ -300,19 +303,4 @@ export default function UploadPage() {
       </div>
     </div>
   )
-}
-
-function detectDocType(filename: string): string {
-  const lower = filename.toLowerCase()
-  if (lower.includes('lease') || lower.includes('rent')) return 'Lease'
-  if (lower.includes('contract') || lower.includes('agreement')) return 'Contract'
-  if (lower.includes('policy') || lower.includes('terms') || lower.includes('tos')) return 'ToS'
-  if (lower.includes('nda') || lower.includes('disclosure')) return 'NDA'
-  return 'Document'
-}
-
-function getRiskLabel(score: number): string {
-  if (score >= 70) return 'High Risk'
-  if (score >= 40) return 'Caution'
-  return 'Safe'
 }

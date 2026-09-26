@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { FileText, Plus, ShieldAlert, ShieldCheck, ShieldEllipsis, Clock, GitCompare, ArrowRight, UploadCloud } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { getRiskColor, getRiskBg } from '@/lib/utils'
 
 interface StoredDoc {
   id: string
@@ -16,18 +17,6 @@ interface StoredDoc {
   riskLevel: string
   status: string
   clauses: number
-}
-
-function getRiskColor(score: number) {
-  if (score >= 70) return 'text-risk-danger'
-  if (score >= 40) return 'text-risk-caution'
-  return 'text-risk-safe'
-}
-
-function getRiskBg(score: number) {
-  if (score >= 70) return 'bg-risk-danger/10'
-  if (score >= 40) return 'bg-risk-caution/10'
-  return 'bg-risk-safe/10'
 }
 
 function getRiskIcon(score: number) {

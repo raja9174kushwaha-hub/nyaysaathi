@@ -11,17 +11,18 @@ export function resizeTextarea(this: HTMLTextAreaElement) {
 }
 
 export const errorUtils = {
-  getError: (error: any) => {
-    let e = error
-    if (error.response) {
-      e = error.response.data
-      if (error.response.data && error.response.data.error) {
-        e = error.response.data.error
+  getError: (error: unknown) => {
+    let e: unknown = error
+    if (typeof error === 'object' && error !== null && 'response' in error) {
+      const resp = (error as { response?: { data?: { error?: string } } }).response
+      e = resp?.data
+      if (resp?.data?.error) {
+        e = resp.data.error
       }
-    } else if (error.message) {
+    } else if (error instanceof Error) {
       e = error.message
     } else {
-      e = 'Unknown error occured'
+      e = 'Unknown error occurred'
     }
     console.error(e)
   },
@@ -67,6 +68,8 @@ export const convertFromHtml = (html: string | undefined) => {
 
 export const fileTypes = ['application/pdf', 'text/plain']
 
+// --- Shared helpers (previously duplicated across pages) ---
+
 export function detectDocType(filename: string): string {
   const lower = filename.toLowerCase()
   if (lower.includes('lease') || lower.includes('rent')) return 'Lease'
@@ -80,4 +83,30 @@ export function getRiskLabel(score: number): string {
   if (score >= 70) return 'High Risk'
   if (score >= 40) return 'Caution'
   return 'Safe'
+}
+
+export function getRiskColor(score: number): string {
+  if (score >= 70) return 'text-risk-danger'
+  if (score >= 40) return 'text-risk-caution'
+  return 'text-risk-safe'
+}
+
+export function getRiskBg(score: number): string {
+  if (score >= 70) return 'bg-risk-danger/10'
+  if (score >= 40) return 'bg-risk-caution/10'
+  return 'bg-risk-safe/10'
+}
+
+export function getHighlightBg(tag: string): string {
+  switch (tag) {
+    case 'risk': return 'bg-risk-danger/15 border-b-2 border-risk-danger'
+    case 'obligation': return 'bg-amber-500/15 border-b-2 border-amber-500'
+    case 'right': return 'bg-risk-safe/15 border-b-2 border-risk-safe'
+    case 'deadline': return 'bg-blue-500/15 border-b-2 border-blue-500'
+    default: return 'bg-muted/30 border-b-2 border-muted-foreground/20'
+  }
+}
+
+export function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }

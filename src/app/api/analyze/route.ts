@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGemini } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { analyzeSchema, validateRequestBody, sanitizeText } from '@/lib/validators'
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
     const ip = getClientIp(req)
     const rateLimit = checkRateLimit(ip)
 
@@ -14,14 +16,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { text } = await req.json()
-
-    if (!text || text.trim().length < 20) {
-      return NextResponse.json(
-        { error: 'Document text is too short or missing.' },
-        { status: 400 }
-      )
-    }
+    // Input validation
+    const body = await req.json()
+    const { text } = validateRequestBody(analyzeSchema, body)
+    const sanitized = sanitizeText(text)
 
     const prompt = `You are NyaySaathi, an expert Indian legal document analyst. Analyze the following legal document and return a JSON response.
 
@@ -52,7 +50,7 @@ RESPOND ONLY with valid JSON in this exact format, no markdown, no backticks:
 }
 
 DOCUMENT:
-${text}`
+${sanitized}`
 
     const result = await callGemini(prompt)
 
@@ -70,11 +68,12 @@ ${text}`
     }
 
     return NextResponse.json(parsed)
-  } catch (error: any) {
-    console.error('Analyze API error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to analyze document.' },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to analyze document.'
+    console.error('Analyze API error:', message)
+
+    // Return 400 for validation errors, 500 for everything else
+    const status = message.includes('too short') || message.includes('required') || message.includes('exceeds') ? 400 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

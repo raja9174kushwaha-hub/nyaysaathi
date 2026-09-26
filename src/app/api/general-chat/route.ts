@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGemini } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
-import { chatSchema, validateRequestBody, sanitizeText } from '@/lib/validators'
+import { sanitizeText } from '@/lib/validators'
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting
     const ip = getClientIp(req)
     const rateLimit = checkRateLimit(ip)
 
@@ -16,36 +15,33 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Input validation
     const body = await req.json()
-    const { documentText, question, history } = validateRequestBody(chatSchema, body)
-    const sanitizedDoc = sanitizeText(documentText)
+    const { question, history } = body
+
+    if (!question || typeof question !== 'string') {
+      return NextResponse.json({ error: 'question is required and must be a string' }, { status: 400 })
+    }
+
     const sanitizedQuestion = sanitizeText(question)
 
-    // Build conversation context
-    const conversationHistory = (history || [])
-      .map((msg) => `${msg.role === 'user' ? 'User' : 'NyaySaathi'}: ${msg.content}`)
+    const conversationHistory = (Array.isArray(history) ? history : [])
+      .map((msg: any) => `${msg.role === 'user' ? 'User' : 'NyaySaathi'}: ${msg.content}`)
       .join('\n')
 
-    const prompt = `You are NyaySaathi, an AI legal assistant for Indian law. You are having a conversation about a legal document. Answer the user's question ONLY using information from the document below. If the answer is not in the document, say so clearly.
+    const prompt = `You are NyaySaathi, an AI legal assistant for Indian law. You are having a general conversation with a user about legal queries.
 
 RULES:
 - Answer in simple, clear language a non-lawyer can understand.
-- If relevant, cite the specific clause (e.g., "Clause 4.1").
+- Provide general legal information, NOT formal legal advice.
 - Keep answers concise but thorough (2-4 sentences).
 - If the user asks in Hindi or Hinglish, respond in the same language.
-- Never make up information not in the document.
-
-DOCUMENT:
-${sanitizedDoc}
 
 ${conversationHistory ? `PREVIOUS CONVERSATION:\n${conversationHistory}\n` : ''}
 User's question: ${sanitizedQuestion}
 
 RESPOND ONLY with valid JSON, no markdown, no backticks:
 {
-  "answer": "Your response here",
-  "citation": "Clause X.X — Title (or null if no specific clause cited)"
+  "answer": "Your response here"
 }`
 
     const result = await callGemini(prompt)
@@ -55,16 +51,13 @@ RESPOND ONLY with valid JSON, no markdown, no backticks:
       const cleaned = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       parsed = JSON.parse(cleaned)
     } catch {
-      // If JSON parsing fails, return the raw text as the answer
-      parsed = { answer: result, citation: null }
+      parsed = { answer: result }
     }
 
     return NextResponse.json(parsed)
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to get AI response.'
-    console.error('Chat API error:', message)
-
-    const status = message.includes('required') || message.includes('empty') || message.includes('too short') ? 400 : 500
-    return NextResponse.json({ error: message }, { status })
+    console.error('General Chat API error:', message)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

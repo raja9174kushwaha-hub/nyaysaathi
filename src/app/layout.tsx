@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/providers/theme-provider'
 import './globals.css'
 import Navigation from '@/components/navigation'
 import { Toaster } from '@/components/ui/toaster'
-
+import { ChatWidget } from '@/components/chat-widget'
 const fontSans = FontSans({
   subsets: ['latin'],
   variable: '--font-sans',
@@ -45,6 +45,7 @@ export default function RootLayout({
           <Toaster />
           <Navigation />
           {children}
+          <ChatWidget />
         </ThemeProvider>
       </body>
     </html>

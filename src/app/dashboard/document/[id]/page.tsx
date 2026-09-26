@@ -3,25 +3,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ShieldAlert, ShieldCheck, ShieldEllipsis, Download, Search, MessageSquare, Send, ChevronRight, Info, Loader2 } from 'lucide-react'
+import { ArrowLeft, ShieldAlert, ShieldCheck, ShieldEllipsis, Search, MessageSquare, Send, ChevronRight, Info, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-
-interface ChatMessage {
-  role: 'assistant' | 'user'
-  content: string
-  citation?: string | null
-}
-
-interface Clause {
-  id: string
-  title: string
-  originalText: string
-  plainLanguage: string
-  riskLevel: 'safe' | 'caution' | 'danger'
-  riskTag: 'right' | 'obligation' | 'deadline' | 'risk' | 'information'
-  recommendation: string | null
-}
+import { getRiskColor, getHighlightBg, capitalize } from '@/lib/utils'
+import type { Clause, ChatMessage } from '@/lib/types'
 
 interface DocumentData {
   id: string
@@ -97,12 +83,13 @@ export default function DocumentViewerPage() {
         citation: data.citation,
       }
       setMessages((prev) => [...prev, aiMsg])
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: `Sorry, I encountered an error: ${err.message}. Please try again.`,
+          content: `Sorry, I encountered an error: ${message}. Please try again.`,
         },
       ])
     } finally {
@@ -158,9 +145,12 @@ export default function DocumentViewerPage() {
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tab Bar */}
             <div className="flex items-center justify-between bg-card px-3 py-2 rounded-t-xl border border-border border-b-0">
-              <div className="flex bg-muted/80 p-0.5 rounded-lg">
+              <div className="flex bg-muted/80 p-0.5 rounded-lg" role="tablist" aria-label="Document view">
                 <button
                   onClick={() => setActiveTab('original')}
+                  role="tab"
+                  aria-selected={activeTab === 'original'}
+                  aria-controls="tab-original"
                   className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     activeTab === 'original'
                       ? 'bg-background shadow-sm text-foreground'
@@ -171,6 +161,9 @@ export default function DocumentViewerPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab('plain')}
+                  role="tab"
+                  aria-selected={activeTab === 'plain'}
+                  aria-controls="tab-plain"
                   className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     activeTab === 'plain'
                       ? 'bg-background shadow-sm text-foreground'
@@ -192,13 +185,13 @@ export default function DocumentViewerPage() {
             <Card className="flex-1 overflow-auto rounded-t-none border-t-0">
               <CardContent className="p-6 md:p-8 text-foreground font-sans leading-relaxed text-sm md:text-base">
                 {activeTab === 'original' ? (
-                  <div className="space-y-6">
+                  <div className="space-y-6" id="tab-original" role="tabpanel">
                     {clauses.map((clause) => (
                       <div key={clause.id}>
                         <h2 className="text-lg font-bold font-serif">{clause.id} — {clause.title}</h2>
                         <p className="leading-7 mt-2">
                           <span
-                            className={`${getHighlightBg(clause.riskTag)} ${getHighlightBorder(clause.riskTag)} px-0.5 rounded-sm cursor-help`}
+                            className={`${getHighlightBg(clause.riskTag)} px-0.5 rounded-sm cursor-help`}
                             title={`${capitalize(clause.riskTag)}: ${clause.plainLanguage}`}
                           >
                             {clause.originalText}
@@ -211,7 +204,7 @@ export default function DocumentViewerPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-6" id="tab-plain" role="tabpanel">
                     {/* AI Summary Banner */}
                     <div className="bg-secondary/10 p-4 rounded-xl border border-secondary/20">
                       <h3 className="font-semibold text-secondary flex items-center gap-2 mb-2 text-sm">
@@ -270,7 +263,7 @@ export default function DocumentViewerPage() {
               </div>
 
               {/* Chat Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-muted/20">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-muted/20" aria-live="polite">
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div
@@ -292,7 +285,7 @@ export default function DocumentViewerPage() {
                 ))}
                 {isSending && (
                   <div className="flex justify-start">
-                    <div className="bg-card border border-border rounded-xl rounded-bl-sm p-3 flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="bg-card border border-border rounded-xl rounded-bl-sm p-3 flex items-center gap-2 text-sm text-muted-foreground" role="status">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Thinking...
                     </div>
@@ -317,6 +310,7 @@ export default function DocumentViewerPage() {
                     placeholder="e.g., Can I break the lease early?"
                     className="flex-1 text-sm p-2.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
                     disabled={isSending}
+                    aria-label="Ask a question about the document"
                   />
                   <Button type="submit" size="icon" className="shrink-0 w-10 h-10" aria-label="Send message" disabled={!chatInput.trim() || isSending}>
                     <Send className="w-4 h-4" />
@@ -334,34 +328,9 @@ export default function DocumentViewerPage() {
   )
 }
 
-// Helpers
-function getRiskColor(score: number) {
-  if (score >= 70) return 'text-risk-danger'
-  if (score >= 40) return 'text-risk-caution'
-  return 'text-risk-safe'
-}
-
+// Helper — kept local because it returns JSX (not suitable for utils.ts)
 function getRiskIcon(score: number) {
   if (score >= 70) return <ShieldAlert className="w-3.5 h-3.5" />
   if (score >= 40) return <ShieldEllipsis className="w-3.5 h-3.5" />
   return <ShieldCheck className="w-3.5 h-3.5" />
-}
-
-function getHighlightBg(tag: string) {
-  switch (tag) {
-    case 'risk': return 'bg-risk-danger/15 border-b-2 border-risk-danger'
-    case 'obligation': return 'bg-amber-500/15 border-b-2 border-amber-500'
-    case 'right': return 'bg-risk-safe/15 border-b-2 border-risk-safe'
-    case 'deadline': return 'bg-blue-500/15 border-b-2 border-blue-500'
-    default: return 'bg-muted/30 border-b-2 border-muted-foreground/20'
-  }
-}
-
-function getHighlightBorder(tag: string) {
-  // Already handled in getHighlightBg, kept for potential future use
-  return ''
-}
-
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1)
 }

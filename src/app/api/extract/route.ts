@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ai } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { isAllowedFileExtension, isFileSizeAllowed, MAX_FILE_SIZE } from '@/lib/validators'
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
     const ip = getClientIp(req)
     const rateLimit = checkRateLimit(ip)
 
@@ -13,11 +15,28 @@ export async function POST(req: NextRequest) {
         { status: 429, headers: { 'X-RateLimit-Reset': rateLimit.resetTime.toISOString() } }
       )
     }
+
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided.' }, { status: 400 })
+    }
+
+    // Validate file extension
+    if (!isAllowedFileExtension(file.name)) {
+      return NextResponse.json(
+        { error: 'Unsupported file type. Please upload PDF or TXT.' },
+        { status: 400 }
+      )
+    }
+
+    // Validate file size
+    if (!isFileSizeAllowed(file.size)) {
+      return NextResponse.json(
+        { error: `File size exceeds the ${MAX_FILE_SIZE / 1024 / 1024}MB limit.` },
+        { status: 400 }
+      )
     }
 
     const arrayBuffer = await file.arrayBuffer()
@@ -32,7 +51,7 @@ export async function POST(req: NextRequest) {
       const base64 = buffer.toString('base64')
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.8-flash',
         contents: [
           {
             role: 'user',
@@ -67,11 +86,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ text: text.trim() })
-  } catch (error: any) {
-    console.error('Extract API error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to extract text from file.' },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to extract text from file.'
+    console.error('Extract API error:', message)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

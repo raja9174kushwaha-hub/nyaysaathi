@@ -1,65 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGemini } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
-import { generalChatSchema, sanitizeText } from '@/lib/validators'
+import { generalChatSchema, validateRequestBody, sanitizeText } from '@/lib/validators'
+import { chatResultSchema, parseModelJson } from '@/lib/ai-schemas'
 
 export async function POST(req: NextRequest) {
+  const rateLimit = checkRateLimit(getClientIp(req))
+  if (!rateLimit.success) return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
   try {
-    const ip = getClientIp(req)
-    const rateLimit = checkRateLimit(ip)
-
-    if (!rateLimit.success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429, headers: { 'X-RateLimit-Reset': rateLimit.resetTime.toISOString() } }
-      )
-    }
-
-    const validation = generalChatSchema.safeParse(await req.json())
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.errors[0]?.message || 'Invalid request.' },
-        { status: 400 }
-      )
-    }
-    const { question, history } = validation.data
-
-    const sanitizedQuestion = sanitizeText(question)
-
-    const conversationHistory = history
-      .map((msg) => `${msg.role === 'user' ? 'User' : 'NyaySaathi'}: ${sanitizeText(msg.content)}`)
-      .join('\n')
-
-    const prompt = `You are NyaySaathi, an AI legal assistant for Indian law. You are having a general conversation with a user about legal queries.
-
-RULES:
-- Answer in simple, clear language a non-lawyer can understand.
-- Provide general legal information, NOT formal legal advice.
-- Keep answers concise but thorough (2-4 sentences).
-- If the user asks in Hindi or Hinglish, respond in the same language.
-
-${conversationHistory ? `PREVIOUS CONVERSATION:\n${conversationHistory}\n` : ''}
-User's question: ${sanitizedQuestion}
-
-RESPOND ONLY with valid JSON, no markdown, no backticks:
-{
-  "answer": "Your response here"
-}`
-
+    const { question, history } = validateRequestBody(generalChatSchema, await req.json())
+    const prompt = `You provide general legal information only, NOT legal advice. Answer in simple language. If asked for personalized legal guidance, encourage consulting a lawyer. Keep answers to 2-4 sentences.\n\nPREVIOUS:\n${history.map((m) => `${m.role}: ${sanitizeText(m.content)}`).join('\n')}\n\nQUESTION:\n${sanitizeText(question)}\n\nRespond only JSON: {"answer":"..."}`
     const result = await callGemini(prompt)
-
-    let parsed
-    try {
-      const cleaned = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      parsed = JSON.parse(cleaned)
-    } catch {
-      parsed = { answer: result }
-    }
-
+    const parsed = parseModelJson(result, chatResultSchema)
     return NextResponse.json(parsed)
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to get AI response.'
+    const message = error instanceof Error ? error.message : 'Unable to respond.'
+    const clientError = /required|short|maximum|invalid request/i.test(message)
     console.error('General Chat API error:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: clientError ? message : 'Unable to respond safely. Please try again.' }, { status: clientError ? 400 : 502 })
   }
 }

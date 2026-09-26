@@ -48,6 +48,23 @@ export const compareSchema = z.object({
     .max(MAX_TEXT_LENGTH, 'Revised document text exceeds maximum length.'),
 })
 
+export const generalChatSchema = z.object({
+  question: z
+    .string({ required_error: 'question is required and must be a string.' })
+    .min(1, 'question cannot be empty.')
+    .max(2000, 'Question is too long (maximum 2000 characters).'),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().max(5000),
+      })
+    )
+    .max(20, 'Too many history messages.')
+    .optional()
+    .default([]),
+})
+
 // --- Utility Functions ---
 
 /**

@@ -130,8 +130,9 @@ ai-legal-assistant/
 Create a `.env.local` file in the root directory:
 
 ```env
-# Add your environment variables here
-NEXT_PUBLIC_API_URL=your_api_url_here
+GEMINI_API_KEY=your_gemini_api_key
+# Optional; defaults to gemini-2.5-flash
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 ### API Endpoints

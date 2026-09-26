@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import { POST } from '@/app/api/chat/route'
+import { POST as postGeneralChat } from '@/app/api/general-chat/route'
 import { NextRequest } from 'next/server'
 import { rateLimitStore } from '@/lib/rate-limit'
 
@@ -81,5 +82,33 @@ describe('POST /api/chat', () => {
     })
     const res = await POST(req)
     expect(res.status).toBe(429)
+  })
+})
+
+describe('POST /api/general-chat', () => {
+  beforeEach(() => {
+    rateLimitStore.clear()
+  })
+
+  it('should return an answer for a valid question', async () => {
+    const req = createRequest({ question: 'What is a security deposit?' })
+    const res = await postGeneralChat(req)
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toHaveProperty('answer')
+  })
+
+  it('should return 400 when the question is missing', async () => {
+    const req = createRequest({})
+    const res = await postGeneralChat(req)
+    expect(res.status).toBe(400)
+  })
+
+  it('should reject oversized conversation history', async () => {
+    const req = createRequest({
+      question: 'What is a security deposit?',
+      history: Array.from({ length: 21 }, () => ({ role: 'user', content: 'A previous question.' })),
+    })
+    const res = await postGeneralChat(req)
+    expect(res.status).toBe(400)
   })
 })

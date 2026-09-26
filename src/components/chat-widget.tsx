@@ -39,7 +39,7 @@ export function ChatWidget() {
       const response = await fetch('/api/general-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: userQuestion, history: messages })
+        body: JSON.stringify({ question: userQuestion, history: messages.slice(-20) })
       })
 
       const data = await response.json()
@@ -65,14 +65,14 @@ export function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="mb-4 bg-background border border-border shadow-2xl rounded-2xl w-[350px] sm:w-[400px] h-[500px] flex flex-col overflow-hidden"
+            className="mb-4 bg-background border border-border shadow-2xl rounded-2xl w-[min(400px,calc(100vw-3rem))] h-[min(500px,calc(100dvh-7rem))] flex flex-col overflow-hidden"
           >
             <div className="bg-primary text-primary-foreground p-4 flex justify-between items-center">
               <div>
                 <h3 className="font-semibold">NyaySaathi Assistant</h3>
                 <p className="text-xs text-primary-foreground/80">Ask any general legal queries</p>
               </div>
-              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 rounded-full h-8 w-8" onClick={() => setIsOpen(false)}>
+              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/20 rounded-full h-8 w-8" onClick={() => setIsOpen(false)} aria-label="Close chat window" title="Close chat window">
                 <X className="w-5 h-5" />
               </Button>
             </div>
@@ -106,10 +106,11 @@ export function ChatWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your question..."
+                aria-label="Message NyaySaathi"
                 className="flex-1 bg-muted rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 disabled={isLoading}
               />
-              <Button type="submit" size="icon" disabled={!input.trim() || isLoading} className="rounded-full shrink-0">
+              <Button type="submit" size="icon" disabled={!input.trim() || isLoading} className="rounded-full shrink-0" aria-label="Send message" title="Send message">
                 <Send className="w-4 h-4" />
               </Button>
             </form>
@@ -125,6 +126,9 @@ export function ChatWidget() {
           size="lg" 
           className="rounded-full w-14 h-14 shadow-xl shadow-primary/30 flex items-center justify-center p-0"
           onClick={() => setIsOpen(!isOpen)}
+          aria-label={isOpen ? 'Close assistant chat' : 'Open assistant chat'}
+          aria-expanded={isOpen}
+          title={isOpen ? 'Close assistant chat' : 'Open assistant chat'}
         >
           {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
         </Button>

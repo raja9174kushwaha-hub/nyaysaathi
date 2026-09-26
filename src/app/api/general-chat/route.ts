@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGemini } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
-import { sanitizeText } from '@/lib/validators'
+import { generalChatSchema, sanitizeText } from '@/lib/validators'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,17 +15,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
-    const { question, history } = body
-
-    if (!question || typeof question !== 'string') {
-      return NextResponse.json({ error: 'question is required and must be a string' }, { status: 400 })
+    const validation = generalChatSchema.safeParse(await req.json())
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.errors[0]?.message || 'Invalid request.' },
+        { status: 400 }
+      )
     }
+    const { question, history } = validation.data
 
     const sanitizedQuestion = sanitizeText(question)
 
-    const conversationHistory = (Array.isArray(history) ? history : [])
-      .map((msg: any) => `${msg.role === 'user' ? 'User' : 'NyaySaathi'}: ${msg.content}`)
+    const conversationHistory = history
+      .map((msg) => `${msg.role === 'user' ? 'User' : 'NyaySaathi'}: ${sanitizeText(msg.content)}`)
       .join('\n')
 
     const prompt = `You are NyaySaathi, an AI legal assistant for Indian law. You are having a general conversation with a user about legal queries.

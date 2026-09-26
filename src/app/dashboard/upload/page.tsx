@@ -63,13 +63,12 @@ export default function UploadPage() {
       setAnalysisStage(0)
 
       // Stage 1: Extracting text
-      await new Promise(r => setTimeout(r, 400))
       setAnalysisStage(1)
 
       let documentText = ''
 
       // For TXT files, read directly on client
-      if (file.name.endsWith('.txt')) {
+      if (file.name.toLowerCase().endsWith('.txt')) {
         documentText = await file.text()
       } else {
         // For PDFs and other files, send to server for extraction
@@ -95,11 +94,9 @@ export default function UploadPage() {
       }
 
       // Stage 2: Identifying clauses
-      await new Promise(r => setTimeout(r, 300))
       setAnalysisStage(2)
 
       // Stage 3: Classifying risks (AI call happens here)
-      await new Promise(r => setTimeout(r, 300))
       setAnalysisStage(3)
 
       const analyzeRes = await fetch('/api/analyze', {
@@ -116,7 +113,6 @@ export default function UploadPage() {
 
       // Stage 4: Generating summary
       setAnalysisStage(4)
-      await new Promise(r => setTimeout(r, 500))
 
       // Store the analysis result + document text in sessionStorage
       const docId = Date.now().toString()
@@ -142,9 +138,7 @@ export default function UploadPage() {
       sessionStorage.setItem(`nyaysaathi_doc_${docId}`, JSON.stringify(storedDoc))
 
       // Navigate to the document viewer
-      setTimeout(() => {
-        router.push(`/dashboard/document/${docId}`)
-      }, 600)
+      router.push(`/dashboard/document/${docId}`)
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'

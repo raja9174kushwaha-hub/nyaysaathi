@@ -4,21 +4,24 @@
 import { POST } from '@/app/api/extract/route'
 import { NextRequest } from 'next/server'
 import { rateLimitStore } from '@/lib/rate-limit'
+import { getGeminiAI } from '@/lib/gemini'
 
-// Mock pdf-parse or ai module
+const mockGenerateContent = jest.fn()
+
 jest.mock('@/lib/gemini', () => ({
-  ai: {
-    models: {
-      generateContent: jest.fn().mockResolvedValue({
-        text: 'Extracted plain text content from sample document.',
-      }),
-    },
-  },
+  ...jest.requireActual('@/lib/gemini'),
+  getGeminiAI: jest.fn(),
 }))
 
 describe('POST /api/extract', () => {
   beforeEach(() => {
     rateLimitStore.clear()
+    mockGenerateContent.mockReset().mockResolvedValue({
+      text: 'Extracted plain text content from sample document.',
+    })
+    ;(getGeminiAI as jest.Mock).mockReturnValue({
+      models: { generateContent: mockGenerateContent },
+    })
   })
 
   it('should return 400 when no file is uploaded', async () => {
@@ -62,5 +65,40 @@ describe('POST /api/extract', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.text).toBe(textContent)
+  })
+
+  it('should accept uppercase text file extensions', async () => {
+    const textContent = 'This is a sample text contract file with sufficient length.'
+    const file = new File([textContent], 'contract.TXT', { type: 'text/plain' })
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const req = new NextRequest('http://localhost:3000/api/extract', {
+      method: 'POST',
+      body: formData,
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.text).toBe(textContent)
+  })
+
+  it('should retry PDF extraction after a temporary Gemini 503', async () => {
+    mockGenerateContent
+      .mockRejectedValueOnce(new Error('503 UNAVAILABLE: model experiencing high demand'))
+      .mockResolvedValueOnce({ text: 'Extracted plain text content from sample PDF.' })
+
+    const file = new File(['%PDF-1.4 sample'], 'contract.pdf', { type: 'application/pdf' })
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const req = new NextRequest('http://localhost:3000/api/extract', {
+      method: 'POST',
+      body: formData,
+    })
+    const res = await POST(req)
+
+    expect(res.status).toBe(200)
+    expect(mockGenerateContent).toHaveBeenCalledTimes(2)
   })
 })

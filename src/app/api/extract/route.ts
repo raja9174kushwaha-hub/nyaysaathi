@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ai } from '@/lib/gemini'
+import { getGeminiAI, GEMINI_MODEL, withGeminiRetry } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { isAllowedFileExtension, isFileSizeAllowed, MAX_FILE_SIZE } from '@/lib/validators'
 
@@ -44,31 +44,33 @@ export async function POST(req: NextRequest) {
 
     let text = ''
 
-    if (file.name.endsWith('.txt')) {
+    if (file.name.toLowerCase().endsWith('.txt')) {
       text = buffer.toString('utf-8')
-    } else if (file.name.endsWith('.pdf')) {
+    } else if (file.name.toLowerCase().endsWith('.pdf')) {
       // Use Gemini to extract text from PDF — it natively understands PDFs
       const base64 = buffer.toString('base64')
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                inlineData: {
-                  mimeType: 'application/pdf',
-                  data: base64,
+      const response = await withGeminiRetry(() =>
+        getGeminiAI().models.generateContent({
+          model: GEMINI_MODEL,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'application/pdf',
+                    data: base64,
+                  },
                 },
-              },
-              {
-                text: 'Extract ALL the text content from this PDF document. Return ONLY the raw text, preserving the original structure (headings, paragraphs, clauses, numbered lists). Do not add any commentary, analysis, or formatting — just the exact text from the document.',
-              },
-            ],
-          },
-        ],
-      })
+                {
+                  text: 'Extract ALL the text content from this PDF document. Return ONLY the raw text, preserving the original structure (headings, paragraphs, clauses, numbered lists). Do not add any commentary, analysis, or formatting — just the exact text from the document.',
+                },
+              ],
+            },
+          ],
+        })
+      )
 
       text = response.text ?? ''
     } else {
